@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examen Final: Redes 1 - Proyecto Integrado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #1E293B; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            max-height: 400px;
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        .nav-active {
+            border-bottom: 2px solid #3B82F6;
+            color: #1D4ED8;
+            font-weight: 600;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom Scrollbar for lists */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #CBD5E1;
+            border-radius: 20px;
+        }
+    </style>
+    <!-- Chosen Palette: Slate & Blue (Corporate/Engineering) -->
+    <!-- Application Structure Plan:
+         1. Dashboard Overview: Summary of the scenario, total scope, and key objectives.
+         2. Site Analysis (Interactive): Breakdown of requirements per city/location with dynamic VLSM hints.
+         3. Network Intelligence (Charts): Visual comparison of user load and subnet sizing to aid decision making.
+         4. Topology & Specs: Conceptual visualizer of data flow and technical constraints (IP, O7 system).
+         This structure moves from the "Big Picture" to "Specifics" to "Analysis", mimicking the engineering design process.
+    -->
+    <!-- Visualization & Content Choices:
+         - Site Explorer: Goal -> Detail Requirements. Method -> Interactive List + Detail Card. Interaction -> Selection updates DOM.
+         - User Load Chart: Goal -> Compare Load. Method -> Chart.js Bar Chart. Justification -> Visualizes where the heavy traffic is (Hotels).
+         - City Distribution: Goal -> Geographic Scope. Method -> Chart.js Doughnut.
+         - Topology Diagram: Goal -> Conceptual Architecture. Method -> HTML/CSS Grid with arrows. Justification -> Shows the Hub-Spoke/Mesh requirement clearly without images.
+         - NO SVG/Mermaid confirmed.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center gap-2">
+                        <span class="text-2xl">📡</span>
+                        <h1 class="font-bold text-xl text-slate-800 tracking-tight">NetDesign <span class="text-slate-400 font-normal">| Examen Final Redes 1</span></h1>
+                    </div>
+                </div>
+                <div class="hidden sm:flex sm:space-x-8 items-center" id="nav-container">
+                    <button onclick="navigate('dashboard')" class="nav-btn nav-active px-3 py-2 text-sm font-medium text-slate-900" data-target="dashboard">Visión General</button>
+                    <button onclick="navigate('sites')" class="nav-btn px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700" data-target="sites">Sedes y Requisitos</button>
+                    <button onclick="navigate('analysis')" class="nav-btn px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700" data-target="analysis">Análisis de Capacidad</button>
+                    <button onclick="navigate('topology')" class="nav-btn px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700" data-target="topology">Especificaciones Técnicas</button>
+                </div>
+                <!-- Mobile menu button placeholder (simplified for single file) -->
+                <div class="flex items-center sm:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-slate-500 hover:text-slate-700 p-2">☰</button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden sm:hidden bg-white border-t border-slate-100 p-4 space-y-2">
+            <button onclick="navigate('dashboard')" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50">Visión General</button>
+            <button onclick="navigate('sites')" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50">Sedes y Requisitos</button>
+            <button onclick="navigate('analysis')" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50">Análisis</button>
+            <button onclick="navigate('topology')" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50">Técnico</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- VIEW: DASHBOARD -->
+        <div id="dashboard" class="view-section fade-in">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                <div class="p-8">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-slate-800 mb-2">Proyecto de Integración Corporativa</h2>
+                            <p class="text-slate-500">Documento de Requerimientos: Cadena Hotelera & Servicios Ferroviarios</p>
+                        </div>
+                        <div class="mt-4 md:mt-0 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100">
+                            IP Base: 172.16.0.0/16
+                        </div>
+                    </div>
+                    
+                    <div class="prose max-w-none text-slate-600 mb-8">
+                        <p class="text-lg leading-relaxed">
+                            Este panel interactivo resume los requerimientos del <strong>Examen Final de Redes 1</strong>. 
+                            El objetivo es diseñar una topología de red óptima para una nueva fusión empresarial que administrará hoteles y trenes en el sur del Perú. 
+                            Todas las sedes deben tener conectividad entre sí, acceso a Internet centralizado en Lima, y acceso redundante a los sistemas críticos (O7).
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                            <div class="text-3xl mb-2">🏢</div>
+                            <h3 class="font-semibold text-slate-900">Infraestructura</h3>
+                            <p class="text-sm text-slate-500 mt-1">Conexión de oficinas corporativas, 4 hoteles de lujo y 3 estaciones de tren en 3 ciudades principales.</p>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                            <div class="text-3xl mb-2">🔄</div>
+                            <h3 class="font-semibold text-slate-900">Alta Disponibilidad</h3>
+                            <p class="text-sm text-slate-500 mt-1">Datacenter Principal en Lima y Contingencia en Cusco. Todos los servicios (Contable, Logístico, RRHH) están centralizados.</p>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                            <div class="text-3xl mb-2">👥</div>
+                            <h3 class="font-semibold text-slate-900">Escalabilidad</h3>
+                            <p class="text-sm text-slate-500 mt-1">Segmentación de redes para Administración y WiFi de Invitados con alta densidad de usuarios (hasta 500 por sitio).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exam Logistics -->
+            <div class="bg-blue-600 text-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>📝</span> Indicaciones del Examen
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-100 text-sm">
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Duración:</strong> 120 minutos.</li>
+                        <li><strong>Entregable:</strong> Informe con tabla VLSM, Imagen Topología GNS3, Configuraciones.</li>
+                    </ul>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Formato Archivo:</strong> ApellidosyNombres.DOCX o PDF.</li>
+                        <li><strong>Criterio:</strong> Calidad sobre extensión. Breve y objetivo.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: SITES & REQUIREMENTS -->
+        <div id="sites" class="view-section hidden fade-in">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Sedes y Requerimientos VLSM</h2>
+                <p class="text-slate-600">Explore cada sede para ver el desglose de usuarios y la recomendación de subred.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[600px]">
+                <!-- Sidebar List -->
+                <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50">
+                        <h3 class="font-semibold text-slate-700">Ubicaciones del Proyecto</h3>
+                        <span class="text-xs text-slate-500">Seleccione una ubicación para ver detalles</span>
+                    </div>
+                    <div class="overflow-y-auto custom-scroll p-2 space-y-2 flex-grow" id="sites-list">
+                        <!-- JS will populate this -->
+                    </div>
+                </div>
+
+                <!-- Detail View -->
+                <div class="lg:col-span-8 bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center items-center text-center relative" id="site-detail-container">
+                    <!-- Initial State -->
+                    <div id="site-detail-placeholder" class="text-slate-400">
+                        <div class="text-6xl mb-4">📍</div>
+                        <p class="text-lg">Seleccione una sede del menú para ver los requerimientos técnicos.</p>
+                    </div>
+
+                    <!-- Active Content -->
+                    <div id="site-detail-content" class="hidden w-full text-left h-full flex flex-col">
+                        <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+                            <div>
+                                <span id="detail-city" class="text-xs font-bold tracking-wider text-blue-600 uppercase mb-1 block">Ciudad</span>
+                                <h2 id="detail-name" class="text-3xl font-bold text-slate-800">Nombre de Sede</h2>
+                                <span id="detail-type" class="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">Tipo</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-4xl font-bold text-slate-800" id="detail-total-users">0</div>
+                                <div class="text-xs text-slate-500 uppercase tracking-wide">Usuarios Totales</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <!-- Network 1 -->
+                            <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <span class="text-6xl">🔒</span>
+                                </div>
+                                <h4 class="font-bold text-slate-700 mb-1">Red Administrativa</h4>
+                                <div class="flex items-baseline gap-2 mb-3">
+                                    <span class="text-2xl font-bold text-blue-600" id="detail-admin-users">0</span>
+                                    <span class="text-sm text-slate-500">usuarios</span>
+                                </div>
+                                <div class="bg-white p-3 rounded border border-slate-200">
+                                    <p class="text-xs text-slate-400 uppercase font-bold mb-1">Máscara Sugerida</p>
+                                    <p class="font-mono text-green-600 font-bold" id="detail-admin-mask">/25</p>
+                                    <p class="text-xs text-slate-500 mt-1">Host útiles: <span id="detail-admin-hosts">126</span></p>
+                                </div>
+                            </div>
+
+                            <!-- Network 2 -->
+                            <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <span class="text-6xl">📶</span>
+                                </div>
+                                <h4 class="font-bold text-slate-700 mb-1">Red WiFi / Invitados</h4>
+                                <div class="flex items-baseline gap-2 mb-3">
+                                    <span class="text-2xl font-bold text-blue-600" id="detail-wifi-users">0</span>
+                                    <span class="text-sm text-slate-500">usuarios</span>
+                                </div>
+                                <div class="bg-white p-3 rounded border border-slate-200">
+                                    <p class="text-xs text-slate-400 uppercase font-bold mb-1">Máscara Sugerida</p>
+                                    <p class="font-mono text-green-600 font-bold" id="detail-wifi-mask">--</p>
+                                    <p class="text-xs text-slate-500 mt-1">Host útiles: <span id="detail-wifi-hosts">--</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                            <h5 class="text-sm font-bold text-yellow-800 mb-1">Nota de Diseño:</h5>
+                            <p class="text-sm text-yellow-700">
+                                Recuerde contemplar las conexiones WAN punto-a-punto entre los routers de esta sede y la topología principal. Generalmente requieren máscaras /30.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: ANALYSIS -->
+        <div id="analysis" class="view-section hidden fade-in">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Análisis de Capacidad</h2>
+                <p class="text-slate-600">Visualización de la carga de usuarios para dimensionamiento de equipos.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- User Distribution Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 text-center">Distribución Total de Usuarios por Ciudad</h3>
+                    <div class="chart-container">
+                        <canvas id="cityChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 text-center mt-4 bg-slate-50 p-2 rounded">
+                        Cusco concentra la mayor carga debido a la cantidad de hoteles y la estación principal.
+                    </p>
+                </div>
+
+                <!-- Load Comparison Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 text-center">Carga Máxima: Hoteles vs. Estaciones</h3>
+                    <div class="chart-container">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 text-center mt-4 bg-slate-50 p-2 rounded">
+                        Las redes WiFi de los hoteles demandan bloques de direcciones significativamente mayores (/23).
+                    </p>
+                </div>
+            </div>
+
+            <!-- VLSM Reference Table -->
+            <div class="mt-8 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-800 text-white px-6 py-4 border-b border-slate-700">
+                    <h3 class="font-bold">Tabla de Referencia Rápida VLSM</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-500 uppercase font-medium">
+                            <tr>
+                                <th class="px-6 py-3">Usuarios Req.</th>
+                                <th class="px-6 py-3">Máscara (CIDR)</th>
+                                <th class="px-6 py-3">Hosts Útiles</th>
+                                <th class="px-6 py-3">Uso Típico en Proyecto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr>
+                                <td class="px-6 py-4">500</td>
+                                <td class="px-6 py-4 font-mono text-blue-600 font-bold">/23</td>
+                                <td class="px-6 py-4">510</td>
+                                <td class="px-6 py-4">WiFi Hoteles</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4">200</td>
+                                <td class="px-6 py-4 font-mono text-blue-600 font-bold">/24</td>
+                                <td class="px-6 py-4">254</td>
+                                <td class="px-6 py-4">Corp. Lima / WiFi Estaciones</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4">100</td>
+                                <td class="px-6 py-4 font-mono text-blue-600 font-bold">/25</td>
+                                <td class="px-6 py-4">126</td>
+                                <td class="px-6 py-4">Redes Administrativas</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4">2</td>
+                                <td class="px-6 py-4 font-mono text-blue-600 font-bold">/30</td>
+                                <td class="px-6 py-4">2</td>
+                                <td class="px-6 py-4">Enlaces WAN (Routers)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: TOPOLOGY & SPECS -->
+        <div id="topology" class="view-section hidden fade-in">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Especificaciones Técnicas y Topología</h2>
+                <p class="text-slate-600">Esquema conceptual del flujo de datos y requisitos de sistemas.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- System Architecture -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Logical Flow Diagram (CSS Construction) -->
+                    <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-800 mb-6 border-b pb-2">Flujo de Datos y Contingencia</h3>
+                        
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-4 relative">
+                            <!-- Connector Lines (Visual) -->
+                            <div class="hidden md:block absolute top-1/2 left-0 w-full h-1 bg-slate-100 -z-0"></div>
+
+                            <!-- Cusco Hub -->
+                            <div class="relative z-10 w-full md:w-1/3 bg-white p-4 rounded-lg border-2 border-slate-300 text-center shadow-sm">
+                                <div class="text-2xl mb-2">🏔️</div>
+                                <h4 class="font-bold text-slate-800">CUSCO</h4>
+                                <p class="text-xs text-slate-500 mb-2">Backup Datacenter</p>
+                                <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded font-mono">Contingencia</div>
+                            </div>
+
+                            <!-- Arrows -->
+                            <div class="text-slate-300 text-2xl z-10">⇄</div>
+
+                            <!-- Lima Hub -->
+                            <div class="relative z-10 w-full md:w-1/3 bg-blue-50 p-4 rounded-lg border-2 border-blue-500 text-center shadow-md transform scale-105">
+                                <div class="absolute -top-3 -right-3 bg-green-500 text-white p-1 rounded-full text-xs shadow">Gateway</div>
+                                <div class="text-3xl mb-2">🏢</div>
+                                <h4 class="font-bold text-slate-800">LIMA</h4>
+                                <p class="text-xs text-slate-500 mb-2">Main Datacenter</p>
+                                <div class="bg-blue-600 text-white text-xs px-2 py-1 rounded font-mono mb-1">INTERNET EXIT</div>
+                                <div class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-mono">ERP Sistema O7</div>
+                            </div>
+
+                            <!-- Arrows -->
+                            <div class="text-slate-300 text-2xl z-10">⇄</div>
+
+                            <!-- Arequipa/Puno -->
+                            <div class="relative z-10 w-full md:w-1/3 bg-white p-4 rounded-lg border-2 border-slate-300 text-center shadow-sm">
+                                <div class="text-2xl mb-2">🚆</div>
+                                <h4 class="font-bold text-slate-800">AREQUIPA / PUNO</h4>
+                                <p class="text-xs text-slate-500 mb-2">Remote Branches</p>
+                                <div class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded font-mono">Conexión WAN</div>
+                            </div>
+                        </div>
+                        <div class="mt-8 text-sm text-slate-500 text-center italic">
+                            * Todas las sedes deben comunicarse. El tráfico de Internet debe salir centralizadamente por Lima.
+                        </div>
+                    </div>
+
+                    <!-- Guidelines -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-800 mb-4">Reglas de Implementación GNS3</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-3">
+                                <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                                <p class="text-sm text-slate-600">Se recomienda utilizar <strong>un router por sede</strong> como referencia para la topología.</p>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                                <p class="text-sm text-slate-600">El diseño de la topología es libre, pero debe ser <strong>óptimo</strong> (evitar redundancia innecesaria que complique el enrutamiento sin beneficio).</p>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                                <p class="text-sm text-slate-600">Las conexiones entre routers deben incluirse en el cálculo VLSM (subredes /30).</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Systems Info Sidebar -->
+                <div class="space-y-6">
+                    <div class="bg-slate-800 text-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold mb-4 text-blue-200">Sistema "O7"</h3>
+                        <p class="text-sm text-slate-300 mb-4">Plataforma unificada para:</p>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Contabilidad</li>
+                            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Logística</li>
+                            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Recursos Humanos</li>
+                        </ul>
+                        <div class="mt-6 pt-4 border-t border-slate-700">
+                            <p class="text-xs text-slate-400">Ubicación física:</p>
+                            <p class="font-mono text-sm mt-1">SRV-MAIN: Lima Site</p>
+                            <p class="font-mono text-sm">SRV-BAK: Cusco Site</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                         <h3 class="font-bold text-slate-800 mb-2">Resumen de Subredes</h3>
+                         <div class="space-y-4 mt-4">
+                             <div>
+                                 <div class="flex justify-between text-xs mb-1">
+                                     <span>Lima Corp</span>
+                                     <span class="font-bold">200 hosts</span>
+                                 </div>
+                                 <div class="w-full bg-slate-100 rounded-full h-2">
+                                     <div class="bg-blue-500 h-2 rounded-full" style="width: 40%"></div>
+                                 </div>
+                             </div>
+                             <div>
+                                 <div class="flex justify-between text-xs mb-1">
+                                     <span>Wifi Hoteles (x4)</span>
+                                     <span class="font-bold">500 hosts/c.u.</span>
+                                 </div>
+                                 <div class="w-full bg-slate-100 rounded-full h-2">
+                                     <div class="bg-indigo-500 h-2 rounded-full" style="width: 100%"></div>
+                                 </div>
+                             </div>
+                             <div>
+                                 <div class="flex justify-between text-xs mb-1">
+                                     <span>Wifi Estaciones (x3)</span>
+                                     <span class="font-bold">200 hosts/c.u.</span>
+                                 </div>
+                                 <div class="w-full bg-slate-100 rounded-full h-2">
+                                     <div class="bg-purple-500 h-2 rounded-full" style="width: 40%"></div>
+                                 </div>
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm">
+            <p>Generado para asistencia en Examen Final Redes 1 - Semestre 2026-0</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA STATE ---
+        const sitesData = [
+            { 
+                id: 'lima-corp', city: 'Lima', name: 'Oficinas Corporativas (Miraflores)', type: 'Corporativo', 
+                admin: 200, wifi: 0, 
+                desc: 'Sede central. Contiene el Datacenter Principal.' 
+            },
+            { 
+                id: 'cusco-sanblas', city: 'Cusco', name: 'Hotel San Blas', type: 'Hotel', 
+                admin: 100, wifi: 500, 
+                desc: 'Alojamiento turístico.' 
+            },
+            { 
+                id: 'cusco-urubamba', city: 'Cusco', name: 'Hotel Urubamba', type: 'Hotel', 
+                admin: 100, wifi: 500, 
+                desc: 'Alojamiento Valle Sagrado.' 
+            },
+            { 
+                id: 'cusco-wanchaq', city: 'Cusco', name: 'Estación Wanchaq', type: 'Estación', 
+                admin: 100, wifi: 200, 
+                desc: 'Terminal de trenes distrito Wanchaq.' 
+            },
+            { 
+                id: 'cusco-sanctuary', city: 'Cusco', name: 'Hotel Sanctuary Lodge (Machu Picchu)', type: 'Hotel', 
+                admin: 100, wifi: 500, 
+                desc: 'Ubicación remota en santuario histórico.' 
+            },
+            { 
+                id: 'arequipa-mirador', city: 'Arequipa', name: 'Hotel Mirador del Monasterio', type: 'Hotel', 
+                admin: 100, wifi: 500, 
+                desc: 'Alojamiento Centro Histórico.' 
+            },
+            { 
+                id: 'arequipa-estacion', city: 'Arequipa', name: 'Estación Arequipa', type: 'Estación', 
+                admin: 100, wifi: 200, 
+                desc: 'Terminal Centro Histórico.' 
+            },
+            { 
+                id: 'puno-estacion', city: 'Puno', name: 'Estación Puno', type: 'Estación', 
+                admin: 100, wifi: 200, 
+                desc: 'Terminal Centro Histórico.' 
+            }
+        ];
+
+        // --- NAVIGATION LOGIC ---
+        function navigate(targetId) {
+            // Update Menu
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.target === targetId) {
+                    btn.classList.add('nav-active', 'text-slate-900');
+                    btn.classList.remove('text-slate-500');
+                } else {
+                    btn.classList.remove('nav-active', 'text-slate-900');
+                    btn.classList.add('text-slate-500');
+                }
+            });
+
+            // Update View
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.add('hidden');
+            });
+            const targetEl = document.getElementById(targetId);
+            targetEl.classList.remove('hidden');
+
+            // Trigger Charts if entering Analysis view
+            if(targetId === 'analysis' && !window.chartsInitialized) {
+                renderCharts();
+                window.chartsInitialized = true;
+            }
+            
+            // Close mobile menu if open
+            document.getElementById('mobile-menu').classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // --- VLSM HELPER ---
+        function calculateCIDR(users) {
+            if (users === 0) return { cidr: '--', hosts: '--' };
+            // Simple logic for standard sizes in this exam
+            if (users <= 2) return { cidr: '/30', hosts: 2 };
+            if (users <= 6) return { cidr: '/29', hosts: 6 };
+            if (users <= 14) return { cidr: '/28', hosts: 14 };
+            if (users <= 30) return { cidr: '/27', hosts: 30 };
+            if (users <= 62) return { cidr: '/26', hosts: 62 };
+            if (users <= 126) return { cidr: '/25', hosts: 126 };
+            if (users <= 254) return { cidr: '/24', hosts: 254 };
+            if (users <= 510) return { cidr: '/23', hosts: 510 };
+            return { cidr: '/22', hosts: 1022 };
+        }
+
+        // --- SITES RENDER LOGIC ---
+        function renderSitesList() {
+            const listContainer = document.getElementById('sites-list');
+            listContainer.innerHTML = '';
+
+            sitesData.forEach(site => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-3 rounded-lg hover:bg-blue-50 focus:bg-blue-50 transition-colors group border border-transparent focus:border-blue-200';
+                btn.onclick = () => showSiteDetail(site);
+                
+                let icon = '🏢';
+                if (site.type === 'Hotel') icon = '🏨';
+                if (site.type === 'Estación') icon = '🚆';
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl group-hover:scale-110 transition-transform">${icon}</span>
+                        <div>
+                            <div class="font-medium text-slate-800 text-sm leading-tight">${site.name}</div>
+                            <div class="text-xs text-slate-500 mt-1">${site.city} • ${site.type}</div>
+                        </div>
+                    </div>
+                `;
+                listContainer.appendChild(btn);
+            });
+        }
+
+        function showSiteDetail(site) {
+            document.getElementById('site-detail-placeholder').classList.add('hidden');
+            document.getElementById('site-detail-content').classList.remove('hidden');
+
+            document.getElementById('detail-city').innerText = site.city;
+            document.getElementById('detail-name').innerText = site.name;
+            document.getElementById('detail-type').innerText = site.type;
+            
+            const total = site.admin + site.wifi;
+            document.getElementById('detail-total-users').innerText = total;
+
+            // Admin Network
+            document.getElementById('detail-admin-users').innerText = site.admin;
+            const adminCalc = calculateCIDR(site.admin);
+            document.getElementById('detail-admin-mask').innerText = adminCalc.cidr;
+            document.getElementById('detail-admin-hosts').innerText = adminCalc.hosts;
+
+            // Wifi Network
+            document.getElementById('detail-wifi-users').innerText = site.wifi;
+            if(site.wifi > 0) {
+                const wifiCalc = calculateCIDR(site.wifi);
+                document.getElementById('detail-wifi-mask').innerText = wifiCalc.cidr;
+                document.getElementById('detail-wifi-hosts').innerText = wifiCalc.hosts;
+            } else {
+                document.getElementById('detail-wifi-mask').innerText = "N/A";
+                document.getElementById('detail-wifi-hosts').innerText = "-";
+            }
+        }
+
+        // --- CHART RENDERING ---
+        function renderCharts() {
+            // Prepare Data
+            const usersByCity = { 'Lima': 0, 'Cusco': 0, 'Arequipa': 0, 'Puno': 0 };
+            
+            sitesData.forEach(s => {
+                if(usersByCity[s.city] !== undefined) {
+                    usersByCity[s.city] += (s.admin + s.wifi);
+                }
+            });
+
+            // Chart 1: City Distribution
+            const ctx1 = document.getElementById('cityChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(usersByCity),
+                    datasets: [{
+                        data: Object.values(usersByCity),
+                        backgroundColor: ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Chart 2: Type Requirements
+            const typeRequirements = {
+                'Hotel - Admin': 100,
+                'Hotel - WiFi': 500,
+                'Estación - Admin': 100,
+                'Estación - WiFi': 200,
+                'Corp - Admin': 200
+            };
+
+            const ctx2 = document.getElementById('typeChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(typeRequirements),
+                    datasets: [{
+                        label: 'Usuarios Máximos por Subred',
+                        data: Object.values(typeRequirements),
+                        backgroundColor: [
+                            '#94A3B8', // Hotel Admin
+                            '#3B82F6', // Hotel Wifi (Biggest)
+                            '#94A3B8', // Station Admin
+                            '#60A5FA', // Station Wifi
+                            '#1E293B'  // Corp
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // --- INIT ---
+        window.onload = function() {
+            renderSitesList();
+        };
+
+    </script>
+</body>
+</html>
